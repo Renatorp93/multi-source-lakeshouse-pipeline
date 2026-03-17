@@ -58,6 +58,7 @@ Entidades iniciais:
 5. Rode os testes com `pytest`.
 6. Sincronize as fontes com `python scripts/sync_sales_sources.py`.
 7. Carregue a Bronze com `python scripts/load_sales_bronze.py`.
+8. Construa e persista a Silver com `python scripts/build_sales_silver.py`.
 
 ## O que o script faz
 
@@ -81,6 +82,7 @@ Na Silver, a base atual já entrega:
 - limpeza e padronização de clientes, produtos, pedidos e itens
 - deduplicação e filtros relacionais
 - resultados de qualidade em memória para regras estruturais, de conteúdo e relacionais
+- persistência dos datasets curados e dos `quality_results` em `storage/silver/`
 
 ## Princípio de Desenvolvimento
 
@@ -93,5 +95,5 @@ O projeto passa a seguir uma abordagem orientada a TDD:
 ## Próximos Passos
 
 - validar a execução local da Bronze após configurar Java 17+
-- materializar a Silver em armazenamento físico
+- materializar Bronze e Silver em Delta quando o ambiente Spark local estiver completo
 - ligar a orquestração com Airflow

@@ -62,5 +62,19 @@ A curadoria inicial da Silver e o motor mínimo de qualidade já estão implemen
 
 - `src/lakehouse/quality/rules.py`
 - `src/lakehouse/silver/sales.py`
+- `src/lakehouse/silver/service.py`
 
 Nesta etapa, o foco está no comportamento e nas regras de negócio validadas por testes.
+
+## Persistência Silver
+
+```bash
+python scripts/build_sales_silver.py
+```
+
+Esse comando:
+
+- monta os datasets Bronze disponíveis em memória
+- escolhe a melhor fonte disponível para curadoria
+- gera datasets Silver limpos
+- persiste os datasets e os `quality_results` em `storage/silver/`

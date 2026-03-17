@@ -83,6 +83,7 @@ ENTITY_SCHEMAS = {
 def build_bronze_datasets(
     settings: Settings,
     postgres_fetcher: Any = fetch_sales_rows,
+    on_source_error: str = "raise",
 ) -> tuple[str, dict[str, dict[str, list[dict[str, Any]]]]]:
     batch = find_latest_sales_batch(settings)
     batch_timestamp = parse_batch_id(batch.batch_id)
@@ -94,7 +95,7 @@ def build_bronze_datasets(
         extracted_at=batch_timestamp,
     )
 
-    datasets: dict[str, dict[str, list[dict[str, Any]]]] = {"api": {}, "csv": {}, "postgres": {}}
+    datasets: dict[str, dict[str, list[dict[str, Any]]]] = {"api": {}, "csv": {}}
 
     for entity in ENTITY_SCHEMAS:
         datasets["api"][entity] = enrich_bronze_records(
@@ -105,10 +106,18 @@ def build_bronze_datasets(
             load_csv_records(batch.csv_dir / f"{entity}.csv"),
             entity,
         )
-        datasets["postgres"][entity] = enrich_bronze_records(
-            postgres_fetcher(settings, entity),
-            entity,
-        )
+
+    try:
+        postgres_datasets: dict[str, list[dict[str, Any]]] = {}
+        for entity in ENTITY_SCHEMAS:
+            postgres_datasets[entity] = enrich_bronze_records(
+                postgres_fetcher(settings, entity),
+                entity,
+            )
+        datasets["postgres"] = postgres_datasets
+    except Exception:
+        if on_source_error != "skip":
+            raise
 
     return batch.batch_id, datasets
 
