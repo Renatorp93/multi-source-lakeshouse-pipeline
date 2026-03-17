@@ -16,6 +16,7 @@ build/
 .idea/
 .vscode/
 IA_DECISIONS/
+AI_MANDATES.md
 PROJECT_GUIDELINE.md
 
 storage/landing/**
