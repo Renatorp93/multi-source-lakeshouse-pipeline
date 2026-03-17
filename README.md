@@ -53,13 +53,14 @@ Entidades iniciais:
 
 1. Crie o arquivo `.env` a partir de `.env.example`.
 2. Suba o PostgreSQL com `docker compose -f infra/docker-compose.yml up -d postgres`.
-3. Crie um ambiente virtual e instale o projeto com `pip install -e .[dev]`.
-4. Garanta um Java 17+ configurado em `JAVA_HOME` para executar cargas Spark.
-5. Rode os testes com `pytest`.
-6. Sincronize as fontes com `python scripts/sync_sales_sources.py`.
-7. Carregue a Bronze com `python scripts/load_sales_bronze.py`.
-8. Construa e persista a Silver com `python scripts/build_sales_silver.py`.
-9. Construa e persista a Gold com `python scripts/build_sales_gold.py`.
+3. Se quiser orquestrar o fluxo completo, suba o Airflow com `docker compose -f infra/docker-compose.yml up -d airflow-init airflow-webserver airflow-scheduler`.
+4. Crie um ambiente virtual e instale o projeto com `pip install -e .[dev]`.
+5. Garanta um Java 17+ configurado em `JAVA_HOME` para executar cargas Spark.
+6. Rode os testes com `pytest`.
+7. Sincronize as fontes com `python scripts/sync_sales_sources.py`.
+8. Carregue a Bronze com `python scripts/load_sales_bronze.py`.
+9. Construa e persista a Silver com `python scripts/build_sales_silver.py`.
+10. Construa e persista a Gold com `python scripts/build_sales_gold.py`.
 
 ## O que os scripts fazem
 
@@ -92,6 +93,17 @@ Na Gold, a base atual ja entrega:
 - mart `product_sales` com unidades e receita por produto
 - persistencia dos marts analiticos em `storage/gold/sales/`
 
+## Orquestracao com Airflow
+
+O projeto agora possui a DAG `sales_medallion_pipeline`, com as etapas:
+
+- `sync_sales_sources`
+- `load_sales_bronze`
+- `build_sales_silver`
+- `build_sales_gold`
+
+No ambiente Docker, a DAG fica disponivel no Airflow Webserver em `http://localhost:8080`.
+
 ## Principio de Desenvolvimento
 
 O projeto segue uma abordagem orientada a TDD:
@@ -105,4 +117,4 @@ O projeto segue uma abordagem orientada a TDD:
 - validar a execucao local da Bronze apos configurar Java 17+
 - materializar Bronze e Silver em Delta quando o ambiente Spark local estiver completo
 - evoluir a Gold para indicadores temporais adicionais e KPIs de conversao
-- ligar a orquestracao com Airflow
+- adicionar quality gates e alertas operacionais no Airflow

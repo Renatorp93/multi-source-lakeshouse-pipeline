@@ -34,3 +34,6 @@ O dominio adotado nesta etapa e vendas, com foco em clientes, produtos, pedidos 
 - `src/lakehouse/silver/service.py` persiste os datasets Silver e o pacote de qualidade em disco.
 - `src/lakehouse/gold/sales.py` agrega visoes analiticas de vendas por dia, cliente e produto.
 - `src/lakehouse/gold/service.py` constroi a Gold a partir da Silver persistida e materializa marts em disco.
+- `src/lakehouse/orchestration/sales_pipeline.py` define o contrato reutilizavel da orquestracao.
+- `dags/sales_medallion_pipeline.py` expoe a DAG lida pelo Airflow.
+- `infra/airflow/Dockerfile` prepara a imagem do orquestrador com Java e dependencias do projeto.

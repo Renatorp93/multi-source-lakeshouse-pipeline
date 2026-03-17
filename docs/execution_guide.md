@@ -13,6 +13,17 @@ Suba o banco com:
 docker compose -f infra/docker-compose.yml up -d postgres
 ```
 
+Para subir tambem o Airflow:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d airflow-init airflow-webserver airflow-scheduler
+```
+
+Por padrao, o acesso fica com:
+
+- usuario: `admin`
+- senha: `admin`
+
 ## Ambiente Python
 
 ```bash
@@ -80,3 +91,14 @@ Esse comando:
 - reaproveita a Silver persistida do batch corrente
 - agrega marts analiticos de vendas por dia, cliente e produto
 - persiste os marts em `storage/gold/sales/`
+
+## Orquestracao Airflow
+
+A DAG `sales_medallion_pipeline` encadeia:
+
+- sincronizacao das fontes
+- carga Bronze
+- persistencia Silver
+- persistencia Gold
+
+O Webserver fica disponivel em `http://localhost:8080`.
