@@ -12,17 +12,24 @@ build/
 *.pyc
 *.pyo
 *.pyd
+*.log
+.idea/
+.vscode/
+IA_DECISIONS/
+PROJECT_GUIDELINE.md
 
 storage/landing/**
 storage/bronze/**
 storage/silver/**
 storage/gold/**
 storage/checkpoints/**
+storage/warehouse/**
 !storage/landing/.gitkeep
 !storage/bronze/.gitkeep
 !storage/silver/.gitkeep
 !storage/gold/.gitkeep
 !storage/checkpoints/.gitkeep
+!storage/warehouse/.gitkeep
 
 logs/**
 !logs/.gitkeep
