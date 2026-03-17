@@ -75,6 +75,14 @@ O comando `python scripts/load_sales_bronze.py`:
 - padroniza schemas e adiciona `processing_timestamp` e `record_hash`
 - grava tabelas Delta em `storage/bronze/{source}/{entity}/`
 
+## Princípio de Desenvolvimento
+
+O projeto passa a seguir uma abordagem orientada a TDD:
+
+- novos comportamentos devem começar por testes
+- os testes devem validar a funcionalidade entregue, não detalhes internos de implementação
+- serviços de orquestração e funções puras são preferidos para facilitar testes estáveis e legíveis
+
 ## Próximos Passos
 
 - validar a execução local da Bronze após configurar Java 17+

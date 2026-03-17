@@ -1,7 +1,7 @@
 from lakehouse.config.settings import get_settings, resolve_path
 
 
-def test_settings_load_defaults():
+def test_settings_expose_default_project_and_connection_values():
     settings = get_settings()
 
     assert settings.project_name == "multi-source-lakehouse-pipeline"

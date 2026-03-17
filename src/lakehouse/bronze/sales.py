@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import csv
+import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
@@ -76,7 +80,10 @@ ENTITY_SCHEMAS = {
 }
 
 
-def load_latest_sales_batch_to_bronze(spark: SparkSession, settings: Settings) -> dict[str, dict[str, int]]:
+def build_bronze_datasets(
+    settings: Settings,
+    postgres_fetcher: Any = fetch_sales_rows,
+) -> tuple[str, dict[str, dict[str, list[dict[str, Any]]]]]:
     batch = find_latest_sales_batch(settings)
     batch_timestamp = parse_batch_id(batch.batch_id)
 
@@ -87,29 +94,68 @@ def load_latest_sales_batch_to_bronze(spark: SparkSession, settings: Settings) -
         extracted_at=batch_timestamp,
     )
 
-    summary: dict[str, dict[str, int]] = {"api": {}, "csv": {}, "postgres": {}}
+    datasets: dict[str, dict[str, list[dict[str, Any]]]] = {"api": {}, "csv": {}, "postgres": {}}
 
     for entity in ENTITY_SCHEMAS:
-        api_records = getattr(api_snapshot, entity)
-        api_df = standardize_bronze_dataframe(spark.createDataFrame(api_records), entity)
-        write_bronze_table(api_df, settings, "api", entity)
-        summary["api"][entity] = api_df.count()
+        datasets["api"][entity] = enrich_bronze_records(
+            getattr(api_snapshot, entity),
+            entity,
+        )
+        datasets["csv"][entity] = enrich_bronze_records(
+            load_csv_records(batch.csv_dir / f"{entity}.csv"),
+            entity,
+        )
+        datasets["postgres"][entity] = enrich_bronze_records(
+            postgres_fetcher(settings, entity),
+            entity,
+        )
 
-        csv_path = batch.csv_dir / f"{entity}.csv"
-        csv_df = spark.read.option("header", True).csv(str(csv_path))
-        csv_df = standardize_bronze_dataframe(csv_df, entity)
-        write_bronze_table(csv_df, settings, "csv", entity)
-        summary["csv"][entity] = csv_df.count()
+    return batch.batch_id, datasets
 
-        postgres_records = fetch_sales_rows(settings, entity)
-        postgres_df = standardize_bronze_dataframe(spark.createDataFrame(postgres_records), entity)
-        write_bronze_table(postgres_df, settings, "postgres", entity)
-        summary["postgres"][entity] = postgres_df.count()
+
+def load_latest_sales_batch_to_bronze(spark: SparkSession, settings: Settings) -> dict[str, dict[str, int]]:
+    _, datasets = build_bronze_datasets(settings)
+
+    summary: dict[str, dict[str, int]] = {"api": {}, "csv": {}, "postgres": {}}
+
+    for source, entities in datasets.items():
+        for entity, records in entities.items():
+            dataframe = cast_bronze_dataframe(spark.createDataFrame(records), entity)
+            write_bronze_table(dataframe, settings, source, entity)
+            summary[source][entity] = len(records)
 
     return summary
 
 
-def standardize_bronze_dataframe(df: DataFrame, entity: str) -> DataFrame:
+def load_csv_records(path: Path) -> list[dict[str, Any]]:
+    with path.open("r", encoding="utf-8", newline="") as stream:
+        reader = csv.DictReader(stream)
+        return list(reader)
+
+
+def enrich_bronze_records(
+    records: list[dict[str, Any]],
+    entity: str,
+    processing_timestamp: datetime | None = None,
+) -> list[dict[str, Any]]:
+    processing_timestamp = processing_timestamp or datetime.now(timezone.utc)
+    processing_value = processing_timestamp.isoformat()
+    schema = ENTITY_SCHEMAS[entity]
+    enriched_records: list[dict[str, Any]] = []
+
+    for record in records:
+        normalized_record = {column_name: record.get(column_name) for column_name in schema}
+        record_hash = hashlib.sha256(
+            "||".join("" if normalized_record[column] is None else str(normalized_record[column]) for column in schema).encode("utf-8")
+        ).hexdigest()
+        normalized_record["processing_timestamp"] = processing_value
+        normalized_record["record_hash"] = record_hash
+        enriched_records.append(normalized_record)
+
+    return enriched_records
+
+
+def cast_bronze_dataframe(df: DataFrame, entity: str) -> DataFrame:
     schema = ENTITY_SCHEMAS[entity]
 
     projected_columns = []
@@ -119,16 +165,10 @@ def standardize_bronze_dataframe(df: DataFrame, entity: str) -> DataFrame:
         else:
             projected_columns.append(F.lit(None).cast(column_type).alias(column_name))
 
-    standardized_df = df.select(*projected_columns)
-    hash_columns = [
-        F.coalesce(F.col(column_name).cast("string"), F.lit(""))
-        for column_name in schema
-    ]
+    projected_columns.append(F.col("processing_timestamp").cast("timestamp").alias("processing_timestamp"))
+    projected_columns.append(F.col("record_hash").cast("string").alias("record_hash"))
 
-    return standardized_df.withColumn("processing_timestamp", F.current_timestamp()).withColumn(
-        "record_hash",
-        F.sha2(F.concat_ws("||", *hash_columns), 256),
-    )
+    return df.select(*projected_columns)
 
 
 def write_bronze_table(df: DataFrame, settings: Settings, source: str, entity: str) -> Path:
