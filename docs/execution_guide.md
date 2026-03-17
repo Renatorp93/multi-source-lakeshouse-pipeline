@@ -1,9 +1,9 @@
-# Guia de Execução
+# Guia de Execucao
 
-## Preparação
+## Preparacao
 
 1. Copie `.env.example` para `.env`.
-2. Ajuste portas e credenciais se necessário.
+2. Ajuste portas e credenciais se necessario.
 
 ## Infraestrutura local
 
@@ -25,13 +25,13 @@ pip install -e .[dev]
 
 Para executar cargas com Spark e Delta localmente, configure um Java 17+ no ambiente com `JAVA_HOME`.
 
-## Validação
+## Validacao
 
 ```bash
 pytest
 ```
 
-## Sincronização das fontes
+## Sincronizacao das fontes
 
 ```bash
 python scripts/sync_sales_sources.py
@@ -39,7 +39,7 @@ python scripts/sync_sales_sources.py
 
 Esse comando:
 
-- consome a API pública DummyJSON
+- consome a API publica DummyJSON
 - salva JSON bruto em `storage/landing/api/`
 - gera CSVs em `storage/landing/csv/`
 - cria e popula tabelas no PostgreSQL
@@ -52,21 +52,11 @@ python scripts/load_sales_bronze.py
 
 Esse comando:
 
-- identifica o último batch comum da Landing
+- identifica o ultimo batch comum da Landing
 - padroniza os dados de API, CSV e PostgreSQL
 - grava Delta por fonte e entidade na camada Bronze
 
-## Fundação Silver
-
-A curadoria inicial da Silver e o motor mínimo de qualidade já estão implementados nos módulos:
-
-- `src/lakehouse/quality/rules.py`
-- `src/lakehouse/silver/sales.py`
-- `src/lakehouse/silver/service.py`
-
-Nesta etapa, o foco está no comportamento e nas regras de negócio validadas por testes.
-
-## Persistência Silver
+## Persistencia Silver
 
 ```bash
 python scripts/build_sales_silver.py
@@ -74,7 +64,19 @@ python scripts/build_sales_silver.py
 
 Esse comando:
 
-- monta os datasets Bronze disponíveis em memória
-- escolhe a melhor fonte disponível para curadoria
+- monta os datasets Bronze disponiveis em memoria
+- escolhe a melhor fonte disponivel para curadoria
 - gera datasets Silver limpos
 - persiste os datasets e os `quality_results` em `storage/silver/`
+
+## Persistencia Gold
+
+```bash
+python scripts/build_sales_gold.py
+```
+
+Esse comando:
+
+- reaproveita a Silver persistida do batch corrente
+- agrega marts analiticos de vendas por dia, cliente e produto
+- persiste os marts em `storage/gold/sales/`

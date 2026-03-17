@@ -1,17 +1,17 @@
 # Multi-Source Lakehouse Pipeline
 
-Projeto de portfólio para demonstrar uma plataforma de Engenharia de Dados ponta a ponta com arquitetura Lakehouse, padrão Medallion e múltiplas fontes de dados.
+Projeto de portfolio para demonstrar uma plataforma de Engenharia de Dados ponta a ponta com arquitetura Lakehouse, padrao Medallion e multiplas fontes de dados.
 
 ## Objetivo
 
-Construir uma base evolutiva para ingestão, padronização, qualidade e consumo analítico de dados no domínio de vendas, usando API pública, PostgreSQL, arquivos CSV e streaming simulado.
+Construir uma base evolutiva para ingestao, padronizacao, qualidade e consumo analitico de dados no dominio de vendas, usando API publica, PostgreSQL, arquivos CSV e streaming simulado.
 
 ## Stack Inicial
 
 - Python 3.11+
 - PySpark 3.5
 - Delta Lake
-- Java 17+ para execuções Spark locais
+- Java 17+ para execucoes Spark locais
 - PostgreSQL
 - Docker Compose
 - Pytest
@@ -32,7 +32,7 @@ Construir uma base evolutiva para ingestão, padronização, qualidade e consumo
 `-- tests/
 ```
 
-## Domínio
+## Dominio
 
 Tema adotado: vendas.
 
@@ -45,11 +45,11 @@ Entidades iniciais:
 
 ## Fontes atuais
 
-- API pública: DummyJSON (`users`, `products` e `carts`)
+- API publica: DummyJSON (`users`, `products` e `carts`)
 - PostgreSQL: tabelas normalizadas no schema `sales`
-- CSV: exportações tabulares geradas a partir do mesmo snapshot da API
+- CSV: exportacoes tabulares geradas a partir do mesmo snapshot da API
 
-## Como começar
+## Como comecar
 
 1. Crie o arquivo `.env` a partir de `.env.example`.
 2. Suba o PostgreSQL com `docker compose -f infra/docker-compose.yml up -d postgres`.
@@ -59,41 +59,50 @@ Entidades iniciais:
 6. Sincronize as fontes com `python scripts/sync_sales_sources.py`.
 7. Carregue a Bronze com `python scripts/load_sales_bronze.py`.
 8. Construa e persista a Silver com `python scripts/build_sales_silver.py`.
+9. Construa e persista a Gold com `python scripts/build_sales_gold.py`.
 
-## O que o script faz
+## O que os scripts fazem
 
 O comando `python scripts/sync_sales_sources.py`:
 
-- busca clientes, produtos e carrinhos na API pública
+- busca clientes, produtos e carrinhos na API publica
 - salva os payloads brutos em `storage/landing/api/`
-- gera exportações CSV em `storage/landing/csv/`
+- gera exportacoes CSV em `storage/landing/csv/`
 - cria e popula tabelas no PostgreSQL no schema `sales`
 
 O comando `python scripts/load_sales_bronze.py`:
 
-- localiza o último batch comum entre API e CSV na Landing
-- lê o mesmo conjunto de dados a partir de API, CSV e PostgreSQL
+- localiza o ultimo batch comum entre API e CSV na Landing
+- le o mesmo conjunto de dados a partir de API, CSV e PostgreSQL
 - padroniza schemas e adiciona `processing_timestamp` e `record_hash`
 - grava tabelas Delta em `storage/bronze/{source}/{entity}/`
 
-Na Silver, a base atual já entrega:
+Na Silver, a base atual ja entrega:
 
-- seleção da fonte preferencial para curadoria
-- limpeza e padronização de clientes, produtos, pedidos e itens
-- deduplicação e filtros relacionais
-- resultados de qualidade em memória para regras estruturais, de conteúdo e relacionais
-- persistência dos datasets curados e dos `quality_results` em `storage/silver/`
+- selecao da fonte preferencial para curadoria
+- limpeza e padronizacao de clientes, produtos, pedidos e itens
+- deduplicacao e filtros relacionais
+- resultados de qualidade em memoria para regras estruturais, de conteudo e relacionais
+- persistencia dos datasets curados e dos `quality_results` em `storage/silver/`
 
-## Princípio de Desenvolvimento
+Na Gold, a base atual ja entrega:
 
-O projeto passa a seguir uma abordagem orientada a TDD:
+- mart `daily_sales` com receita, ticket medio e volume por dia
+- mart `customer_sales` com receita, quantidade de pedidos e ultima compra por cliente
+- mart `product_sales` com unidades e receita por produto
+- persistencia dos marts analiticos em `storage/gold/sales/`
 
-- novos comportamentos devem começar por testes
-- os testes devem validar a funcionalidade entregue, não detalhes internos de implementação
-- serviços de orquestração e funções puras são preferidos para facilitar testes estáveis e legíveis
+## Principio de Desenvolvimento
 
-## Próximos Passos
+O projeto segue uma abordagem orientada a TDD:
 
-- validar a execução local da Bronze após configurar Java 17+
+- novos comportamentos devem comecar por testes
+- os testes devem validar a funcionalidade entregue, nao detalhes internos de implementacao
+- servicos de orquestracao e funcoes puras sao preferidos para facilitar testes estaveis e legiveis
+
+## Proximos Passos
+
+- validar a execucao local da Bronze apos configurar Java 17+
 - materializar Bronze e Silver em Delta quando o ambiente Spark local estiver completo
-- ligar a orquestração com Airflow
+- evoluir a Gold para indicadores temporais adicionais e KPIs de conversao
+- ligar a orquestracao com Airflow
