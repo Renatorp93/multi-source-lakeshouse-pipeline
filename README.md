@@ -11,6 +11,7 @@ Construir uma base evolutiva para ingestão, padronização, qualidade e consumo
 - Python 3.11+
 - PySpark 3.5
 - Delta Lake
+- Java 17+ para execuções Spark locais
 - PostgreSQL
 - Docker Compose
 - Pytest
@@ -53,8 +54,10 @@ Entidades iniciais:
 1. Crie o arquivo `.env` a partir de `.env.example`.
 2. Suba o PostgreSQL com `docker compose -f infra/docker-compose.yml up -d postgres`.
 3. Crie um ambiente virtual e instale o projeto com `pip install -e .[dev]`.
-4. Rode os testes com `pytest`.
-5. Sincronize as fontes com `python scripts/sync_sales_sources.py`.
+4. Garanta um Java 17+ configurado em `JAVA_HOME` para executar cargas Spark.
+5. Rode os testes com `pytest`.
+6. Sincronize as fontes com `python scripts/sync_sales_sources.py`.
+7. Carregue a Bronze com `python scripts/load_sales_bronze.py`.
 
 ## O que o script faz
 
@@ -65,8 +68,15 @@ O comando `python scripts/sync_sales_sources.py`:
 - gera exportações CSV em `storage/landing/csv/`
 - cria e popula tabelas no PostgreSQL no schema `sales`
 
+O comando `python scripts/load_sales_bronze.py`:
+
+- localiza o último batch comum entre API e CSV na Landing
+- lê o mesmo conjunto de dados a partir de API, CSV e PostgreSQL
+- padroniza schemas e adiciona `processing_timestamp` e `record_hash`
+- grava tabelas Delta em `storage/bronze/{source}/{entity}/`
+
 ## Próximos Passos
 
-- converter Landing para Bronze em Delta Lake
-- adicionar metadados completos por camada
+- validar a execução local da Bronze após configurar Java 17+
+- iniciar a camada Silver com limpeza e validação
 - ligar a orquestração com Airflow

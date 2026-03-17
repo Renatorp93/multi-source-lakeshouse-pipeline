@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import psycopg2
-from psycopg2.extras import execute_values
+from psycopg2.extras import RealDictCursor, execute_values
 
 from lakehouse.config.settings import Settings
 from lakehouse.ingestion.sales.normalize import SalesSnapshot
@@ -105,6 +105,21 @@ def seed_sales_snapshot(snapshot: SalesSnapshot, settings: Settings) -> None:
             _upsert(cursor, f"{schema}.order_items", snapshot.order_items, ["order_id", "line_number"])
 
         connection.commit()
+
+
+def fetch_sales_rows(settings: Settings, entity: str) -> list[dict[str, Any]]:
+    schema = settings.postgres.schema_name
+    with psycopg2.connect(
+        host=settings.postgres.host,
+        port=settings.postgres.port,
+        dbname=settings.postgres.database,
+        user=settings.postgres.user,
+        password=settings.postgres.password,
+        cursor_factory=RealDictCursor,
+    ) as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(f"SELECT * FROM {schema}.{entity}")
+            return [dict(row) for row in cursor.fetchall()]
 
 
 def _upsert(cursor: Any, table_name: str, rows: list[dict[str, Any]], conflict_keys: list[str]) -> None:

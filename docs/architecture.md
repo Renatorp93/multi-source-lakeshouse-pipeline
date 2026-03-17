@@ -23,3 +23,9 @@ O domínio adotado nesta etapa é vendas, com foco em clientes, produtos, pedido
 - Spark com Delta configurado no código da aplicação.
 - logging padronizado para jobs.
 - estrutura pronta para evoluir para Landing, Bronze, Silver e Gold.
+
+## Componentes da evolução atual
+
+- `storage/landing` guarda o snapshot bruto e os CSVs do batch.
+- `storage/bronze/{source}/{entity}` passa a materializar Delta por fonte.
+- a Bronze reaproveita o mesmo lote de vendas para API, CSV e PostgreSQL.
