@@ -29,3 +29,5 @@ O domínio adotado nesta etapa é vendas, com foco em clientes, produtos, pedido
 - `storage/landing` guarda o snapshot bruto e os CSVs do batch.
 - `storage/bronze/{source}/{entity}` passa a materializar Delta por fonte.
 - a Bronze reaproveita o mesmo lote de vendas para API, CSV e PostgreSQL.
+- `src/lakehouse/quality/rules.py` centraliza regras iniciais de qualidade.
+- `src/lakehouse/silver/sales.py` prepara datasets Silver limpos e resultados de validação.

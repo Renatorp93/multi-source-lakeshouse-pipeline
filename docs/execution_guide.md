@@ -55,3 +55,12 @@ Esse comando:
 - identifica o último batch comum da Landing
 - padroniza os dados de API, CSV e PostgreSQL
 - grava Delta por fonte e entidade na camada Bronze
+
+## Fundação Silver
+
+A curadoria inicial da Silver e o motor mínimo de qualidade já estão implementados nos módulos:
+
+- `src/lakehouse/quality/rules.py`
+- `src/lakehouse/silver/sales.py`
+
+Nesta etapa, o foco está no comportamento e nas regras de negócio validadas por testes.

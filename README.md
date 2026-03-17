@@ -75,6 +75,13 @@ O comando `python scripts/load_sales_bronze.py`:
 - padroniza schemas e adiciona `processing_timestamp` e `record_hash`
 - grava tabelas Delta em `storage/bronze/{source}/{entity}/`
 
+Na Silver, a base atual já entrega:
+
+- seleção da fonte preferencial para curadoria
+- limpeza e padronização de clientes, produtos, pedidos e itens
+- deduplicação e filtros relacionais
+- resultados de qualidade em memória para regras estruturais, de conteúdo e relacionais
+
 ## Princípio de Desenvolvimento
 
 O projeto passa a seguir uma abordagem orientada a TDD:
@@ -86,5 +93,5 @@ O projeto passa a seguir uma abordagem orientada a TDD:
 ## Próximos Passos
 
 - validar a execução local da Bronze após configurar Java 17+
-- iniciar a camada Silver com limpeza e validação
+- materializar a Silver em armazenamento físico
 - ligar a orquestração com Airflow
