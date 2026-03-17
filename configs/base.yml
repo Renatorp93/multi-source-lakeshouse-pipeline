@@ -2,6 +2,9 @@ project:
   name: multi-source-lakehouse-pipeline
   environment: local
 
+api:
+  base_url: https://dummyjson.com
+
 storage:
   root: ./storage
   landing: ./storage/landing
@@ -26,3 +29,4 @@ postgres:
   database: lakehouse
   user: lakehouse
   password: lakehouse
+  schema: sales

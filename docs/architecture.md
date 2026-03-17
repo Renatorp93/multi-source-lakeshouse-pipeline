@@ -4,6 +4,8 @@
 
 O projeto segue uma arquitetura Lakehouse com padrão Medallion, separando responsabilidades por camada e priorizando reprocessamento, observabilidade e expansão futura para ambientes como Azure Databricks.
 
+O domínio adotado nesta etapa é vendas, com foco em clientes, produtos, pedidos e itens de pedido.
+
 ## Decisões já aplicadas
 
 - `src/lakehouse` concentra toda a lógica da aplicação.
@@ -11,10 +13,13 @@ O projeto segue uma arquitetura Lakehouse com padrão Medallion, separando respo
 - `configs/base.yml` centraliza defaults não sensíveis.
 - `.env` sobrescreve parâmetros por ambiente.
 - `infra/docker-compose.yml` sobe a infraestrutura local inicial.
+- `scripts/sync_sales_sources.py` sincroniza a API pública, os CSVs e o PostgreSQL usando o mesmo snapshot.
 
 ## Componentes da primeira entrega
 
-- PostgreSQL como fonte transacional simulada.
+- API pública DummyJSON para snapshot de vendas.
+- PostgreSQL como fonte transacional local no schema `sales`.
+- exportações CSV derivadas do mesmo conjunto de dados.
 - Spark com Delta configurado no código da aplicação.
 - logging padronizado para jobs.
 - estrutura pronta para evoluir para Landing, Bronze, Silver e Gold.

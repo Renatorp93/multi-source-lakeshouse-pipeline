@@ -18,6 +18,10 @@ class ProjectConfig(BaseModel):
     environment: str
 
 
+class ApiConfig(BaseModel):
+    base_url: str
+
+
 class StorageConfig(BaseModel):
     root: str
     landing: str
@@ -44,6 +48,7 @@ class PostgresConfig(BaseModel):
     database: str
     user: str
     password: str
+    schema_name: str
 
 
 class Settings(BaseSettings):
@@ -53,6 +58,8 @@ class Settings(BaseSettings):
     environment: str = Field(alias="ENVIRONMENT")
     log_level: str = Field(alias="LOG_LEVEL")
     pipeline_run_id: str = Field(alias="PIPELINE_RUN_ID")
+
+    api_base_url: str = Field(alias="API_BASE_URL")
 
     storage_root: str = Field(alias="STORAGE_ROOT")
     landing_root: str = Field(alias="LANDING_ROOT")
@@ -74,10 +81,12 @@ class Settings(BaseSettings):
     postgres_db: str = Field(alias="POSTGRES_DB")
     postgres_user: str = Field(alias="POSTGRES_USER")
     postgres_password: str = Field(alias="POSTGRES_PASSWORD")
+    postgres_schema: str = Field(alias="POSTGRES_SCHEMA")
 
     @classmethod
     def from_sources(cls, defaults: dict[str, Any]) -> "Settings":
         project = defaults["project"]
+        api = defaults["api"]
         storage = defaults["storage"]
         spark = defaults["spark"]
         postgres = defaults["postgres"]
@@ -87,6 +96,7 @@ class Settings(BaseSettings):
             ENVIRONMENT=project["environment"],
             LOG_LEVEL="INFO",
             PIPELINE_RUN_ID="manual_local_run",
+            API_BASE_URL=api["base_url"],
             STORAGE_ROOT=storage["root"],
             LANDING_ROOT=storage["landing"],
             BRONZE_ROOT=storage["bronze"],
@@ -105,7 +115,12 @@ class Settings(BaseSettings):
             POSTGRES_DB=postgres["database"],
             POSTGRES_USER=postgres["user"],
             POSTGRES_PASSWORD=postgres["password"],
+            POSTGRES_SCHEMA=postgres["schema"],
         )
+
+    @property
+    def api(self) -> ApiConfig:
+        return ApiConfig(base_url=self.api_base_url)
 
     @property
     def storage(self) -> StorageConfig:
@@ -139,6 +154,7 @@ class Settings(BaseSettings):
             database=self.postgres_db,
             user=self.postgres_user,
             password=self.postgres_password,
+            schema_name=self.postgres_schema,
         )
 
     def ensure_directories(self) -> None:

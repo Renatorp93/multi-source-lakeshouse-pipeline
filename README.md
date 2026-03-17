@@ -4,7 +4,7 @@ Projeto de portfólio para demonstrar uma plataforma de Engenharia de Dados pont
 
 ## Objetivo
 
-Construir uma base evolutiva para ingestão, padronização, qualidade e consumo analítico de dados vindos de APIs, PostgreSQL, arquivos CSV e streaming simulado.
+Construir uma base evolutiva para ingestão, padronização, qualidade e consumo analítico de dados no domínio de vendas, usando API pública, PostgreSQL, arquivos CSV e streaming simulado.
 
 ## Stack Inicial
 
@@ -19,7 +19,6 @@ Construir uma base evolutiva para ingestão, padronização, qualidade e consumo
 
 ```text
 .
-|-- IA_DECISIONS/
 |-- configs/
 |-- dags/
 |-- docs/
@@ -32,15 +31,22 @@ Construir uma base evolutiva para ingestão, padronização, qualidade e consumo
 `-- tests/
 ```
 
-## Fase Atual
+## Domínio
 
-Fase inicial implementada:
+Tema adotado: vendas.
 
-- estrutura do repositório
-- configuração base do projeto
-- ambiente local com Docker Compose
-- módulos de configuração, logging e Spark com Delta
-- testes iniciais da fundação
+Entidades iniciais:
+
+- customers
+- products
+- orders
+- order_items
+
+## Fontes atuais
+
+- API pública: DummyJSON (`users`, `products` e `carts`)
+- PostgreSQL: tabelas normalizadas no schema `sales`
+- CSV: exportações tabulares geradas a partir do mesmo snapshot da API
 
 ## Como começar
 
@@ -48,10 +54,19 @@ Fase inicial implementada:
 2. Suba o PostgreSQL com `docker compose -f infra/docker-compose.yml up -d postgres`.
 3. Crie um ambiente virtual e instale o projeto com `pip install -e .[dev]`.
 4. Rode os testes com `pytest`.
+5. Sincronize as fontes com `python scripts/sync_sales_sources.py`.
+
+## O que o script faz
+
+O comando `python scripts/sync_sales_sources.py`:
+
+- busca clientes, produtos e carrinhos na API pública
+- salva os payloads brutos em `storage/landing/api/`
+- gera exportações CSV em `storage/landing/csv/`
+- cria e popula tabelas no PostgreSQL no schema `sales`
 
 ## Próximos Passos
 
-- popular o PostgreSQL com dados fake
-- gerar exportações CSV
-- integrar uma API pública
-- iniciar a camada Landing
+- converter Landing para Bronze em Delta Lake
+- adicionar metadados completos por camada
+- ligar a orquestração com Airflow

@@ -26,3 +26,16 @@ pip install -e .[dev]
 ```bash
 pytest
 ```
+
+## Sincronização das fontes
+
+```bash
+python scripts/sync_sales_sources.py
+```
+
+Esse comando:
+
+- consome a API pública DummyJSON
+- salva JSON bruto em `storage/landing/api/`
+- gera CSVs em `storage/landing/csv/`
+- cria e popula tabelas no PostgreSQL
