@@ -35,7 +35,11 @@ def test_build_gold_sales_marts_aggregates_daily_customer_and_product_views():
             "items_sold": 3,
             "gross_revenue": 150.0,
             "net_revenue": 140.0,
+            "discount_amount": 10.0,
+            "discount_rate": 0.0667,
             "average_ticket": 70.0,
+            "average_items_per_order": 1.5,
+            "buyer_conversion_rate": 0.5,
         },
         {
             "order_date": "2026-03-11",
@@ -44,8 +48,27 @@ def test_build_gold_sales_marts_aggregates_daily_customer_and_product_views():
             "items_sold": 3,
             "gross_revenue": 200.0,
             "net_revenue": 180.0,
+            "discount_amount": 20.0,
+            "discount_rate": 0.1,
             "average_ticket": 180.0,
+            "average_items_per_order": 3.0,
+            "buyer_conversion_rate": 0.5,
         },
+    ]
+    assert result.marts["monthly_sales"] == [
+        {
+            "order_month": "2026-03",
+            "order_count": 3,
+            "customer_count": 2,
+            "items_sold": 6,
+            "gross_revenue": 350.0,
+            "net_revenue": 320.0,
+            "discount_amount": 30.0,
+            "discount_rate": 0.0857,
+            "average_ticket": 106.67,
+            "average_items_per_order": 2.0,
+            "buyer_conversion_rate": 1.0,
+        }
     ]
     assert result.marts["customer_sales"] == [
         {
@@ -56,6 +79,9 @@ def test_build_gold_sales_marts_aggregates_daily_customer_and_product_views():
             "items_sold": 3,
             "gross_revenue": 150.0,
             "net_revenue": 140.0,
+            "discount_amount": 10.0,
+            "average_ticket": 70.0,
+            "buyer_conversion_rate": 0.5,
             "last_order_date": "2026-03-10",
         },
         {
@@ -66,6 +92,9 @@ def test_build_gold_sales_marts_aggregates_daily_customer_and_product_views():
             "items_sold": 3,
             "gross_revenue": 200.0,
             "net_revenue": 180.0,
+            "discount_amount": 20.0,
+            "average_ticket": 180.0,
+            "buyer_conversion_rate": 0.5,
             "last_order_date": "2026-03-11",
         },
     ]
@@ -78,6 +107,8 @@ def test_build_gold_sales_marts_aggregates_daily_customer_and_product_views():
             "units_sold": 3,
             "gross_revenue": 220.0,
             "net_revenue": 200.0,
+            "discount_amount": 20.0,
+            "discount_rate": 0.0909,
         },
         {
             "product_id": 102,
@@ -87,6 +118,8 @@ def test_build_gold_sales_marts_aggregates_daily_customer_and_product_views():
             "units_sold": 2,
             "gross_revenue": 80.0,
             "net_revenue": 70.0,
+            "discount_amount": 10.0,
+            "discount_rate": 0.125,
         },
         {
             "product_id": 101,
@@ -96,5 +129,7 @@ def test_build_gold_sales_marts_aggregates_daily_customer_and_product_views():
             "units_sold": 1,
             "gross_revenue": 50.0,
             "net_revenue": 50.0,
+            "discount_amount": 0.0,
+            "discount_rate": 0.0,
         },
     ]

@@ -23,12 +23,13 @@ def test_sales_medallion_dag_module_builds_dag_with_airflow_contract():
             self.tags = tags
 
     class FakeBashOperator:
-        def __init__(self, task_id, bash_command, env, append_env, dag):
+        def __init__(self, task_id, bash_command, env, append_env, dag, trigger_rule="all_success"):
             self.task_id = task_id
             self.bash_command = bash_command
             self.env = env
             self.append_env = append_env
             self.dag = dag
+            self.trigger_rule = trigger_rule
 
         def set_downstream(self, other):
             self.downstream = other.task_id
@@ -56,5 +57,7 @@ def test_sales_medallion_dag_module_builds_dag_with_airflow_contract():
         "sync_sales_sources",
         "load_sales_bronze",
         "build_sales_silver",
+        "check_sales_quality",
         "build_sales_gold",
+        "alert_quality_failure",
     ]

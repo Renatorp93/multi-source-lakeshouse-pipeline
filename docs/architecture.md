@@ -30,10 +30,13 @@ O dominio adotado nesta etapa e vendas, com foco em clientes, produtos, pedidos 
 - `storage/bronze/{source}/{entity}` passa a materializar Delta por fonte.
 - a Bronze reaproveita o mesmo lote de vendas para API, CSV e PostgreSQL.
 - `src/lakehouse/quality/rules.py` centraliza regras iniciais de qualidade.
+- `src/lakehouse/quality/gates.py` traduz `quality_results` persistidos em decisao operacional.
 - `src/lakehouse/silver/sales.py` prepara datasets Silver limpos e resultados de validacao.
 - `src/lakehouse/silver/service.py` persiste os datasets Silver e o pacote de qualidade em disco.
-- `src/lakehouse/gold/sales.py` agrega visoes analiticas de vendas por dia, cliente e produto.
+- `src/lakehouse/gold/sales.py` agrega visoes analiticas de vendas por dia, mes, cliente e produto.
 - `src/lakehouse/gold/service.py` constroi a Gold a partir da Silver persistida e materializa marts em disco.
 - `src/lakehouse/orchestration/sales_pipeline.py` define o contrato reutilizavel da orquestracao.
 - `dags/sales_medallion_pipeline.py` expoe a DAG lida pelo Airflow.
+- `scripts/check_sales_quality.py` bloqueia promocoes quando a Silver falha no gate.
+- `scripts/alert_sales_quality.py` gera o resumo operacional consumido pelo Airflow em caso de falha.
 - `infra/airflow/Dockerfile` prepara a imagem do orquestrador com Java e dependencias do projeto.

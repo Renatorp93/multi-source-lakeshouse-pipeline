@@ -18,7 +18,7 @@ def main() -> None:
     configure_logging(settings.log_level, settings.logs_root)
     logger = get_logger("lakehouse.sales_gold")
 
-    logger.info("Iniciando construcao e persistencia da Gold de vendas")
+    logger.info("Iniciando construcao e persistencia da Gold de vendas a partir da Silver persistida")
     result = build_and_persist_sales_gold(settings)
     logger.info(
         "Gold persistida | batch_id=%s | source=%s | marts=%s",

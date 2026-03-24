@@ -85,12 +85,15 @@ Na Silver, a base atual ja entrega:
 - deduplicacao e filtros relacionais
 - resultados de qualidade em memoria para regras estruturais, de conteudo e relacionais
 - persistencia dos datasets curados e dos `quality_results` em `storage/silver/`
+- insumo operacional para bloquear promocoes com falha antes da Gold
 
 Na Gold, a base atual ja entrega:
 
 - mart `daily_sales` com receita, ticket medio e volume por dia
+- mart `monthly_sales` com agregacao mensal e leitura temporal adicional
 - mart `customer_sales` com receita, quantidade de pedidos e ultima compra por cliente
 - mart `product_sales` com unidades e receita por produto
+- KPIs de conversao e eficiencia como `buyer_conversion_rate`, `discount_rate` e `average_items_per_order`
 - persistencia dos marts analiticos em `storage/gold/sales/`
 
 ## Orquestracao com Airflow
@@ -100,9 +103,13 @@ O projeto agora possui a DAG `sales_medallion_pipeline`, com as etapas:
 - `sync_sales_sources`
 - `load_sales_bronze`
 - `build_sales_silver`
+- `check_sales_quality`
 - `build_sales_gold`
+- `alert_quality_failure`
 
 No ambiente Docker, a DAG fica disponivel no Airflow Webserver em `http://localhost:8080`.
+
+Com isso, a promocao para Gold so acontece quando o batch Silver nao possui regras com falha em `quality_results`. Em caso de bloqueio, a task de alerta publica um resumo operacional no log do Airflow.
 
 ## Principio de Desenvolvimento
 
@@ -117,4 +124,4 @@ O projeto segue uma abordagem orientada a TDD:
 - validar a execucao local da Bronze apos configurar Java 17+
 - materializar Bronze e Silver em Delta quando o ambiente Spark local estiver completo
 - evoluir a Gold para indicadores temporais adicionais e KPIs de conversao
-- adicionar quality gates e alertas operacionais no Airflow
+- integrar alertas operacionais com canais externos como Slack ou e-mail

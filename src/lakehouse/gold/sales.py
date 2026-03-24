@@ -15,18 +15,21 @@ def build_gold_sales_marts(silver_datasets: dict[str, list[dict[str, Any]]]) -> 
     products = silver_datasets.get("products", [])
     orders = silver_datasets.get("orders", [])
     order_items = silver_datasets.get("order_items", [])
+    total_customers = len({record.get("customer_id") for record in customers if record.get("customer_id") is not None})
 
     customer_index = {record.get("customer_id"): record for record in customers}
     product_index = {record.get("product_id"): record for record in products}
     items_by_order = _group_items_by_order(order_items)
 
-    daily_sales = _build_daily_sales(orders, items_by_order)
-    customer_sales = _build_customer_sales(orders, items_by_order, customer_index)
+    daily_sales = _build_daily_sales(orders, items_by_order, total_customers=total_customers)
+    monthly_sales = _build_monthly_sales(orders, items_by_order, total_customers=total_customers)
+    customer_sales = _build_customer_sales(orders, items_by_order, customer_index, total_customers=total_customers)
     product_sales = _build_product_sales(order_items, product_index)
 
     return GoldBuildResult(
         marts={
             "daily_sales": daily_sales,
+            "monthly_sales": monthly_sales,
             "customer_sales": customer_sales,
             "product_sales": product_sales,
         }
@@ -36,6 +39,7 @@ def build_gold_sales_marts(silver_datasets: dict[str, list[dict[str, Any]]]) -> 
 def _build_daily_sales(
     orders: list[dict[str, Any]],
     items_by_order: dict[Any, list[dict[str, Any]]],
+    total_customers: int,
 ) -> list[dict[str, Any]]:
     aggregations: dict[str, dict[str, Any]] = {}
 
@@ -76,9 +80,70 @@ def _build_daily_sales(
                 "items_sold": entry["items_sold"],
                 "gross_revenue": _round_amount(entry["gross_revenue"]),
                 "net_revenue": _round_amount(entry["net_revenue"]),
+                "discount_amount": _round_amount(entry["gross_revenue"] - entry["net_revenue"]),
+                "discount_rate": _safe_rate(entry["gross_revenue"] - entry["net_revenue"], entry["gross_revenue"]),
                 "average_ticket": _round_amount(
                     0.0 if entry["order_count"] == 0 else entry["net_revenue"] / entry["order_count"]
                 ),
+                "average_items_per_order": _safe_rate(entry["items_sold"], entry["order_count"]),
+                "buyer_conversion_rate": _safe_rate(len(entry["customer_ids"]), total_customers),
+            }
+        )
+    return results
+
+
+def _build_monthly_sales(
+    orders: list[dict[str, Any]],
+    items_by_order: dict[Any, list[dict[str, Any]]],
+    total_customers: int,
+) -> list[dict[str, Any]]:
+    aggregations: dict[str, dict[str, Any]] = {}
+
+    for order in orders:
+        order_id = order.get("order_id")
+        order_date = order.get("order_date")
+        customer_id = order.get("customer_id")
+
+        if order_id is None or order_date is None:
+            continue
+
+        order_month = str(order_date)[:7]
+        entry = aggregations.setdefault(
+            order_month,
+            {
+                "order_month": order_month,
+                "order_count": 0,
+                "customer_ids": set(),
+                "items_sold": 0,
+                "gross_revenue": 0.0,
+                "net_revenue": 0.0,
+            },
+        )
+        entry["order_count"] += 1
+        entry["gross_revenue"] += _to_float(order.get("gross_amount"))
+        entry["net_revenue"] += _to_float(order.get("discounted_amount"))
+        if customer_id is not None:
+            entry["customer_ids"].add(customer_id)
+        entry["items_sold"] += sum(_to_int(item.get("quantity")) for item in items_by_order.get(order_id, []))
+
+    results = []
+    for order_month in sorted(aggregations):
+        entry = aggregations[order_month]
+        results.append(
+            {
+                "order_month": order_month,
+                "order_count": entry["order_count"],
+                "customer_count": len(entry["customer_ids"]),
+                "items_sold": entry["items_sold"],
+                "gross_revenue": _round_amount(entry["gross_revenue"]),
+                "net_revenue": _round_amount(entry["net_revenue"]),
+                "discount_amount": _round_amount(entry["gross_revenue"] - entry["net_revenue"]),
+                "discount_rate": _safe_rate(entry["gross_revenue"] - entry["net_revenue"], entry["gross_revenue"]),
+                "average_ticket": _round_amount(
+                    0.0 if entry["order_count"] == 0 else entry["net_revenue"] / entry["order_count"]
+                ),
+                "average_items_per_order": _safe_rate(entry["items_sold"], entry["order_count"]),
+                "buyer_conversion_rate": _safe_rate(len(entry["customer_ids"]), total_customers),
             }
         )
     return results
@@ -88,6 +153,7 @@ def _build_customer_sales(
     orders: list[dict[str, Any]],
     items_by_order: dict[Any, list[dict[str, Any]]],
     customer_index: dict[Any, dict[str, Any]],
+    total_customers: int,
 ) -> list[dict[str, Any]]:
     aggregations: dict[Any, dict[str, Any]] = {}
 
@@ -131,6 +197,11 @@ def _build_customer_sales(
                 "items_sold": entry["items_sold"],
                 "gross_revenue": _round_amount(entry["gross_revenue"]),
                 "net_revenue": _round_amount(entry["net_revenue"]),
+                "discount_amount": _round_amount(entry["gross_revenue"] - entry["net_revenue"]),
+                "average_ticket": _round_amount(
+                    0.0 if entry["order_count"] == 0 else entry["net_revenue"] / entry["order_count"]
+                ),
+                "buyer_conversion_rate": _safe_rate(1, total_customers) if total_customers else 0.0,
                 "last_order_date": entry["last_order_date"],
             }
         )
@@ -179,6 +250,8 @@ def _build_product_sales(
                 "units_sold": entry["units_sold"],
                 "gross_revenue": _round_amount(entry["gross_revenue"]),
                 "net_revenue": _round_amount(entry["net_revenue"]),
+                "discount_amount": _round_amount(entry["gross_revenue"] - entry["net_revenue"]),
+                "discount_rate": _safe_rate(entry["gross_revenue"] - entry["net_revenue"], entry["gross_revenue"]),
             }
         )
 
@@ -212,6 +285,12 @@ def _max_nullable(current: str | None, candidate: str | None) -> str | None:
 
 def _round_amount(value: float) -> float:
     return round(value, 2)
+
+
+def _safe_rate(numerator: float | int, denominator: float | int, precision: int = 4) -> float:
+    if denominator in (0, 0.0):
+        return 0.0
+    return round(float(numerator) / float(denominator), precision)
 
 
 def _to_float(value: Any) -> float:

@@ -10,6 +10,8 @@ from typing import Any
 class PipelineTaskDefinition:
     task_id: str
     bash_command: str
+    trigger_rule: str = "all_success"
+    downstream_task_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -32,18 +34,31 @@ def build_sales_pipeline_definition(project_root: str = "/opt/project") -> Pipel
         PipelineTaskDefinition(
             task_id="sync_sales_sources",
             bash_command=f"cd {quoted_project_root} && python scripts/sync_sales_sources.py",
+            downstream_task_ids=("load_sales_bronze",),
         ),
         PipelineTaskDefinition(
             task_id="load_sales_bronze",
             bash_command=f"cd {quoted_project_root} && python scripts/load_sales_bronze.py",
+            downstream_task_ids=("build_sales_silver",),
         ),
         PipelineTaskDefinition(
             task_id="build_sales_silver",
             bash_command=f"cd {quoted_project_root} && python scripts/build_sales_silver.py",
+            downstream_task_ids=("check_sales_quality",),
+        ),
+        PipelineTaskDefinition(
+            task_id="check_sales_quality",
+            bash_command=f"cd {quoted_project_root} && python scripts/check_sales_quality.py",
+            downstream_task_ids=("build_sales_gold", "alert_quality_failure"),
         ),
         PipelineTaskDefinition(
             task_id="build_sales_gold",
             bash_command=f"cd {quoted_project_root} && python scripts/build_sales_gold.py",
+        ),
+        PipelineTaskDefinition(
+            task_id="alert_quality_failure",
+            bash_command=f"cd {quoted_project_root} && python scripts/alert_sales_quality.py",
+            trigger_rule="one_failed",
         ),
     )
 
@@ -88,12 +103,19 @@ def build_sales_pipeline_dag(
             bash_command=task.bash_command,
             env=definition.env,
             append_env=True,
+            trigger_rule=task.trigger_rule,
             dag=dag,
         )
         for task in definition.tasks
     ]
 
-    for current_task, next_task in zip(tasks, tasks[1:]):
-        current_task.set_downstream(next_task)
+    tasks_by_id = {task.task_id: task for task in tasks}
+    for definition_task, dag_task in zip(definition.tasks, tasks):
+        for downstream_task_id in definition_task.downstream_task_ids:
+            if downstream_task_id not in tasks_by_id:
+                raise ValueError(
+                    f"A tarefa '{definition_task.task_id}' referencia uma dependencia inexistente: '{downstream_task_id}'."
+                )
+            dag_task.set_downstream(tasks_by_id[downstream_task_id])
 
     return dag, tasks

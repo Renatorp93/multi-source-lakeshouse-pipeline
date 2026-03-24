@@ -80,6 +80,30 @@ Esse comando:
 - gera datasets Silver limpos
 - persiste os datasets e os `quality_results` em `storage/silver/`
 
+## Quality Gate
+
+```bash
+python scripts/check_sales_quality.py
+```
+
+Esse comando:
+
+- localiza o `quality_results` mais recente da Silver
+- resume as regras avaliadas no batch
+- falha rapidamente quando existe qualquer regra com status diferente de `passed`
+
+## Alerta Operacional
+
+```bash
+python scripts/alert_sales_quality.py
+```
+
+Esse comando:
+
+- reaproveita o mesmo resumo do gate de qualidade
+- emite uma mensagem operacional legivel para logs e observabilidade
+- foi desenhado para rodar no Airflow quando o gate bloqueia a promocao
+
 ## Persistencia Gold
 
 ```bash
@@ -89,7 +113,8 @@ python scripts/build_sales_gold.py
 Esse comando:
 
 - reaproveita a Silver persistida do batch corrente
-- agrega marts analiticos de vendas por dia, cliente e produto
+- agrega marts analiticos de vendas por dia, mes, cliente e produto
+- adiciona KPIs como `buyer_conversion_rate`, `discount_rate` e `average_items_per_order`
 - persiste os marts em `storage/gold/sales/`
 
 ## Orquestracao Airflow
@@ -99,6 +124,8 @@ A DAG `sales_medallion_pipeline` encadeia:
 - sincronizacao das fontes
 - carga Bronze
 - persistencia Silver
+- quality gate da Silver
 - persistencia Gold
+- alerta operacional em caso de falha do gate
 
 O Webserver fica disponivel em `http://localhost:8080`.
