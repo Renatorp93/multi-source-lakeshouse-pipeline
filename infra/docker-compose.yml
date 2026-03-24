@@ -1,0 +1,118 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: lakehouse-postgres
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-lakehouse}
+      POSTGRES_USER: ${POSTGRES_USER:-lakehouse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lakehouse}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lakehouse} -d ${POSTGRES_DB:-lakehouse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-init:
+    build:
+      context: ..
+      dockerfile: infra/airflow/Dockerfile
+    container_name: lakehouse-airflow-init
+    restart: "no"
+    env_file:
+      - ../.env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-lakehouse}:${POSTGRES_PASSWORD:-lakehouse}@postgres:5432/${POSTGRES_DB:-lakehouse}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__WEBSERVER__RBAC: "true"
+      PYTHONPATH: /opt/project/src
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      POSTGRES_HOST: postgres
+    command: >
+      bash -lc "airflow db migrate &&
+      airflow users create
+      --username ${AIRFLOW_ADMIN_USERNAME:-admin}
+      --password ${AIRFLOW_ADMIN_PASSWORD:-admin}
+      --firstname Data
+      --lastname Engineer
+      --role Admin
+      --email admin@example.com || true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ../:/opt/project
+      - ../dags:/opt/airflow/dags
+      - ../logs:/opt/airflow/logs
+
+  airflow-webserver:
+    build:
+      context: ..
+      dockerfile: infra/airflow/Dockerfile
+    container_name: lakehouse-airflow-webserver
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-lakehouse}:${POSTGRES_PASSWORD:-lakehouse}@postgres:5432/${POSTGRES_DB:-lakehouse}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__WEBSERVER__RBAC: "true"
+      PYTHONPATH: /opt/project/src
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      POSTGRES_HOST: postgres
+    command: webserver
+    ports:
+      - "${AIRFLOW_WEBSERVER_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    volumes:
+      - ../:/opt/project
+      - ../dags:/opt/airflow/dags
+      - ../logs:/opt/airflow/logs
+
+  airflow-scheduler:
+    build:
+      context: ..
+      dockerfile: infra/airflow/Dockerfile
+    container_name: lakehouse-airflow-scheduler
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-lakehouse}:${POSTGRES_PASSWORD:-lakehouse}@postgres:5432/${POSTGRES_DB:-lakehouse}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-}
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__WEBSERVER__RBAC: "true"
+      PYTHONPATH: /opt/project/src
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+      POSTGRES_HOST: postgres
+    command: scheduler
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    volumes:
+      - ../:/opt/project
+      - ../dags:/opt/airflow/dags
+      - ../logs:/opt/airflow/logs
+
+volumes:
+  postgres_data:

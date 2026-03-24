@@ -1,0 +1,32 @@
+project:
+  name: multi-source-lakehouse-pipeline
+  environment: local
+
+api:
+  base_url: https://dummyjson.com
+
+storage:
+  root: ./storage
+  landing: ./storage/landing
+  bronze: ./storage/bronze
+  silver: ./storage/silver
+  gold: ./storage/gold
+  checkpoints: ./storage/checkpoints
+  warehouse: ./storage/warehouse
+  logs: ./logs
+
+spark:
+  app_name: lakehouse-local
+  master: local[*]
+  warehouse_dir: ./storage/warehouse
+  driver_memory: 2g
+  executor_memory: 2g
+  delta_package: io.delta:delta-spark_2.12:3.2.0
+
+postgres:
+  host: localhost
+  port: 5432
+  database: lakehouse
+  user: lakehouse
+  password: lakehouse
+  schema: sales
